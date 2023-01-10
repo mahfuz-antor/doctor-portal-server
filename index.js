@@ -20,13 +20,21 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    const serviceCollection = client.db("doctor_portal").collection("services");
+    const serviceCollection = client
+      .db("doctor_portal")
+      .collection("appointmentOptions");
     const bookingCollection = client.db("doctor_portal").collection("bookings");
-    app.get("/service", async (req, res) => {
+    app.get("/appointmentOptions", async (req, res) => {
       const query = {};
-      const cursor = serviceCollection.find(query);
-      const services = await cursor.toArray();
-      res.send(services);
+      const options = await serviceCollection.find(query).toArray();
+      // const services = await cursor.toArray();
+      res.send(options);
+    });
+
+    app.get("/available", async (req, res) => {
+      const date = req.query.date || "Jan 09, 2023";
+
+      // 1.
     });
 
     /**
@@ -40,8 +48,19 @@ async function run() {
 
     app.post("/booking", async (req, res) => {
       const booking = req.body;
+      const query = {
+        treatment: booking?.treatment,
+        date: booking?.date,
+        user: booking?.user,
+      };
+      console.log(query, "query is checking");
+      const exists = await bookingCollection.findOne(query);
+      console.log(exists, "exists working");
+      if (exists?._id) {
+        return res.send({ success: false, booking: exists });
+      }
       const result = await bookingCollection.insertOne(booking);
-      res.send(result);
+      return res.send({ success: true, result });
     });
   } finally {
   }
