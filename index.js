@@ -24,17 +24,23 @@ async function run() {
       .db("doctor_portal")
       .collection("appointmentOptions");
     const bookingCollection = client.db("doctor_portal").collection("bookings");
+    // getting appointment options and query booking date.
     app.get("/appointmentOptions", async (req, res) => {
       const query = {};
       const options = await serviceCollection.find(query).toArray();
-      // const services = await cursor.toArray();
+      const selectDate = req.query.date;
+      const bookingQuery = { date: selectDate };
+      const alreadyBooked = await bookingCollection
+        .find(bookingQuery)
+        .toArray();
+      options.forEach((option) => {
+        const optionBooked = alreadyBooked.filter(
+          (book) => book.treatment === option.name
+        );
+        const bookedSlots = optionBooked.map((book) => book.time);
+        console.log(selectDate, option.name, bookedSlots, "slots matching");
+      });
       res.send(options);
-    });
-
-    app.get("/available", async (req, res) => {
-      const date = req.query.date || "Jan 09, 2023";
-
-      // 1.
     });
 
     /**
