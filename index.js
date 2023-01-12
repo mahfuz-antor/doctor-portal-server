@@ -38,7 +38,16 @@ async function run() {
           (book) => book.treatment === option.name
         );
         const bookedSlots = optionBooked.map((book) => book.time);
-        console.log(selectDate, option.name, bookedSlots, "slots matching");
+        const remainingSlots = option.slots.filter(
+          (slot) => !bookedSlots.includes(slot)
+        );
+        option.slots = remainingSlots;
+        // console.log(
+        //   selectDate,
+        //   option.name,
+        //   remainingSlots.length,
+        //   "slots matching"
+        // );
       });
       res.send(options);
     });
@@ -61,7 +70,7 @@ async function run() {
       };
       console.log(query, "query is checking");
       const exists = await bookingCollection.findOne(query);
-      console.log(exists, "exists working");
+      // console.log(exists, "exists working");
       if (exists?._id) {
         return res.send({ success: false, booking: exists });
       }
