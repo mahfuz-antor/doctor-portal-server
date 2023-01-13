@@ -52,6 +52,12 @@ async function run() {
       res.send(options);
     });
 
+    // version-2 API created.
+    app.get("/v2/appointmentOptions", async (req, res) => {
+      const date = req.query.date;
+      const options = await appointmentOptionCollection.aggregate([{}]);
+    });
+
     /**
      * API Naming Convention
      * app.get("/booking") // get all bookings in this collection. or get more than one by filtering.
