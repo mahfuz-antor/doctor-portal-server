@@ -52,13 +52,58 @@ async function run() {
       res.send(options);
     });
 
+    /** 
     // version-2 API created.
     app.get("/v2/appointmentOptions", async (req, res) => {
       const date = req.query.date;
-      const options = await appointmentOptionCollection.aggregate([{}]);
+      console.log(date, "getting date in aggregate");
+      const getOptions = await serviceCollection
+        .aggregate([
+          {
+            $lookup: {
+              from: "bookings",
+              localField: "treatment",
+              foreignField: "treatment",
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: ["$appointmentDate", date],
+                    },
+                  },
+                },
+              ],
+              as: "booked",
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              slots: 1,
+              booked: {
+                $map: {
+                  input: "$booked",
+                  as: "book",
+                  in: "$$book.time",
+                },
+              },
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              slots: {
+                $setDifference: ["$slots", "$booked"],
+              },
+            },
+          },
+        ])
+        .toArray();
+      console.log(getOptions, "new route checking");
+      res.send(getOptions);
     });
 
-    /**
+    /** 
      * API Naming Convention
      * app.get("/booking") // get all bookings in this collection. or get more than one by filtering.
      * app.get("/booking/:id") // get a specific booking data
@@ -74,7 +119,7 @@ async function run() {
         date: booking?.date,
         user: booking?.user,
       };
-      console.log(query, "query is checking");
+      // console.log(query, "query is checking");
       const exists = await bookingCollection.findOne(query);
       // console.log(exists, "exists working");
       if (exists?._id) {
