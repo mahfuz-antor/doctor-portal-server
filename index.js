@@ -128,6 +128,15 @@ async function run() {
       const result = await bookingCollection.insertOne(booking);
       return res.send({ success: true, result });
     });
+
+    // checking user email and data
+    app.get("/userAppointments", async (req, res) => {
+      const userData = req.body;
+      const getUserData = {
+        email: userData?.email,
+      };
+      console.log(getUserData, "user mail");
+    });
   } finally {
   }
 }
