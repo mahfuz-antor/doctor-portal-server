@@ -24,6 +24,7 @@ async function run() {
       .db("doctor_portal")
       .collection("appointmentOptions");
     const bookingCollection = client.db("doctor_portal").collection("bookings");
+    const usersCollection = client.db("doctor_portal").collection("users");
     // getting appointment options and query booking date.
     app.get("/appointmentOptions", async (req, res) => {
       const query = {};
@@ -52,11 +53,11 @@ async function run() {
       res.send(options);
     });
 
-    /** 
     // version-2 API created.
+    /** 
     app.get("/v2/appointmentOptions", async (req, res) => {
       const date = req.query.date;
-      console.log(date, "getting date in aggregate");
+      console.log(date, "getting date for aggregate");
       const getOptions = await serviceCollection
         .aggregate([
           {
@@ -103,7 +104,7 @@ async function run() {
       res.send(getOptions);
     });
 
-    /** 
+    /**
      * API Naming Convention
      * app.get("/booking") // get all bookings in this collection. or get more than one by filtering.
      * app.get("/booking/:id") // get a specific booking data
@@ -112,6 +113,14 @@ async function run() {
      * app.delete("/booking/:id") // delete an user data
      */
 
+    // checking user email and data
+    app.get("/booking", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const bookings = await bookingCollection.find(query).toArray();
+      res.send(bookings);
+    });
+
     app.post("/booking", async (req, res) => {
       const booking = req.body;
       const query = {
@@ -119,7 +128,7 @@ async function run() {
         date: booking?.date,
         user: booking?.user,
       };
-      // console.log(query, "query is checking");
+      console.log(query, "query is checking");
       const exists = await bookingCollection.findOne(query);
       // console.log(exists, "exists working");
       if (exists?._id) {
@@ -129,13 +138,12 @@ async function run() {
       return res.send({ success: true, result });
     });
 
-    // checking user email and data
-    app.get("/userAppointments", async (req, res) => {
-      const userData = req.body;
-      const getUserData = {
-        email: userData?.email,
-      };
-      console.log(getUserData, "user mail");
+    // create user collection
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+      console.log(user, result, "checking result for users");
     });
   } finally {
   }
