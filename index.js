@@ -3,10 +3,30 @@ const cors = require("cors");
 require("dotenv").config();
 const app = express();
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const jwt = require("jsonwebtoken");
+
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// jwt verify here
+function verifyJWT(req, res, next) {
+  console.log(req.headers.authorization, "authorizatin from verify");
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send("unauthorized access!");
+  }
+
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access!" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 // mongoDB uri and client here
 
@@ -114,8 +134,12 @@ async function run() {
      */
 
     // checking user email and data
-    app.get("/booking", async (req, res) => {
+    app.get("/booking", verifyJWT, async (req, res) => {
       const email = req.query.email;
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ message: "forbidden access!" });
+      }
       const query = { email: email };
       const bookings = await bookingCollection.find(query).toArray();
       res.send(bookings);
@@ -128,7 +152,7 @@ async function run() {
         date: booking?.date,
         user: booking?.user,
       };
-      console.log(query, "query is checking");
+      // console.log(query, "query is checking");
       const exists = await bookingCollection.findOne(query);
       // console.log(exists, "exists working");
       if (exists?._id) {
@@ -138,12 +162,52 @@ async function run() {
       return res.send({ success: true, result });
     });
 
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
+      }
+      // console.log(user, "user for jwt");
+      res.status(403).send({ accessToken: "user not found" });
+    });
+
+    // getting all users
+    app.get("/users", async (req, res) => {
+      const query = {};
+      const users = await usersCollection.find(query).toArray();
+      res.send(users);
+    });
+
     // create user collection
     app.post("/users", async (req, res) => {
       const user = req.body;
       const result = await usersCollection.insertOne(user);
       res.send(result);
-      console.log(user, result, "checking result for users");
+      // console.log(user, result, "checking result for users");
+    });
+
+    // setting user role
+    app.put("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      var ObjectId = require("mongodb").ObjectId;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
     });
   } finally {
   }
