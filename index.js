@@ -45,6 +45,7 @@ async function run() {
       .collection("appointmentOptions");
     const bookingCollection = client.db("doctor_portal").collection("bookings");
     const usersCollection = client.db("doctor_portal").collection("users");
+    const doctorsCollection = client.db("doctor_portal").collection("doctors");
     // getting appointment options and query booking date.
     app.get("/appointmentOptions", async (req, res) => {
       const query = {};
@@ -183,6 +184,14 @@ async function run() {
       res.send(users);
     });
 
+    // admin checking route
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "admin" });
+    });
+
     // create user collection
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -192,7 +201,16 @@ async function run() {
     });
 
     // setting user role
-    app.put("/users/admin/:id", async (req, res) => {
+    app.put("/users/admin/:id", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ message: "forbidden access. without admin" });
+      }
       const id = req.params.id;
       var ObjectId = require("mongodb").ObjectId;
       const filter = { _id: ObjectId(id) };
@@ -209,6 +227,15 @@ async function run() {
       );
       res.send(result);
     });
+
+    // adding a doctor in a database collection
+    app.post("/doctors", async (req, res) => {
+      const doctor = req.body;
+      const result = await doctorsCollection.insertOne(doctor);
+      res.send(result);
+    });
+
+    // end the functional statements
   } finally {
   }
 }
